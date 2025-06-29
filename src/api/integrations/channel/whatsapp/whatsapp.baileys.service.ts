@@ -468,6 +468,7 @@ export class BaileysStartupService extends ChannelStartupService {
     if (session.VERSION) {
       version = session.VERSION.split('.');
       log = `Baileys version env: ${version}`;
+      this.logger.info(`[DEBUG] Usando CONFIG_SESSION_PHONE_VERSION=${session.VERSION}`);
     } else {
       const baileysVersion = await fetchLatestBaileysVersion();
       version = baileysVersion.version;

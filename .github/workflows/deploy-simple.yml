@@ -85,6 +85,7 @@ jobs:
             LANGUAGE=es
             PRODUCTION=true
             TELEMETRY_ENABLED=true
+            CONFIG_SESSION_PHONE_VERSION=2.3000.1023204200
             EOF
           "
 
