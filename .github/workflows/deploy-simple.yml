@@ -13,6 +13,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.10.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.8.0
         with:
@@ -27,7 +39,54 @@ jobs:
             --exclude 'node_modules' \
             --exclude '.git' \
             --exclude '.github' \
+            --exclude '.env' \
             ./ ape@ssh.datanodex.com:/home/ape/evolution-api-lite
+
+      - name: Create .env file on server
+        run: |
+          ssh -p 2222 ape@ssh.datanodex.com "
+            cd /home/ape/evolution-api-lite &&
+            cat > .env << 'EOF'
+            SERVER_TYPE=http
+            SERVER_PORT=3016
+            SERVER_URL=https://evolution.datanodex.com
+            SERVER_DISABLE_DOCS=false
+            SERVER_DISABLE_MANAGER=false
+            CORS_ORIGIN=[\"https://n8n.datanodex.com\",\"https://whatsapp.datanodex.com\",\"https://evolution.datanodex.com\"]
+            CORS_METHODS=[\"GET\",\"POST\",\"PUT\",\"DELETE\"]
+            CORS_CREDENTIALS=true
+            DATABASE_PROVIDER=postgresql
+            DATABASE_CONNECTION_URI=postgresql://evolution_user:evolution_pass@localhost:5437/evolution_db
+            DATABASE_CONNECTION_CLIENT_NAME=evolution-api
+            DATABASE_SAVE_DATA_INSTANCE=true
+            DATABASE_SAVE_DATA_HISTORIC=true
+            DATABASE_SAVE_DATA_NEW_MESSAGE=true
+            DATABASE_SAVE_DATA_MESSAGE_UPDATE=true
+            DATABASE_SAVE_DATA_CONTACTS=true
+            DATABASE_SAVE_DATA_CHATS=true
+            DATABASE_SAVE_DATA_LABELS=true
+            DATABASE_SAVE_DATA_IS_ON_WHATSAPP=true
+            DATABASE_SAVE_DATA_IS_ON_WHATSAPP_DAYS=7
+            DATABASE_DELETE_DATA_LOGICAL_MESSAGE_DELETE=true
+            CACHE_REDIS_ENABLED=true
+            CACHE_REDIS_URI=redis://localhost:6380
+            CACHE_REDIS_PREFIX_KEY=evolution
+            CACHE_REDIS_TTL=3600
+            CACHE_REDIS_SAVE_INSTANCES=true
+            CACHE_LOCAL_ENABLED=false
+            CACHE_LOCAL_TTL=3600
+            AUTHENTICATION_API_KEY=evolution_api_key_2024_secure_CHANGE_THIS
+            AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
+            LOG_LEVEL=[\"ERROR\",\"WARN\",\"INFO\"]
+            LOG_COLOR=true
+            LOG_BAILEYS=error
+            WEBSOCKET_ENABLED=true
+            WEBSOCKET_GLOBAL_EVENTS=true
+            LANGUAGE=es
+            PRODUCTION=true
+            TELEMETRY_ENABLED=true
+            EOF
+          "
 
       - name: Deploy with Docker Compose
         run: |
