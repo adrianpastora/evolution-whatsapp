@@ -52,8 +52,8 @@ jobs:
             SERVER_URL=https://evolution.datanodex.com
             SERVER_DISABLE_DOCS=false
             SERVER_DISABLE_MANAGER=false
-            CORS_ORIGIN=[\"https://n8n.datanodex.com\",\"https://whatsapp.datanodex.com\",\"https://evolution.datanodex.com\",\"http://localhost:3000\",\"http://localhost:3016\",\"http://192.168.1.196:3016\",\"http://127.0.0.1:3016\",\"*\"]
-            CORS_METHODS=[\"GET\",\"POST\",\"PUT\",\"DELETE\"]
+            CORS_ORIGIN=https://n8n.datanodex.com,https://whatsapp.datanodex.com,https://evolution.datanodex.com,http://localhost:3000,http://localhost:3016,http://192.168.1.196:3016,http://127.0.0.1:3016,*
+            CORS_METHODS=GET,POST,PUT,DELETE
             CORS_CREDENTIALS=true
             DATABASE_PROVIDER=postgresql
             DATABASE_CONNECTION_URI=postgresql://evolution_user:evolution_pass@postgres:5432/evolution_db
