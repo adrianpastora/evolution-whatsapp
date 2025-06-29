@@ -94,5 +94,19 @@ jobs:
             cd /home/ape/evolution-api-lite &&
             docker-compose pull &&
             docker-compose down --remove-orphans &&
-            docker-compose up -d --build
+            docker-compose up -d redis postgres
+          "
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          ssh -p 2222 ape@ssh.datanodex.com "
+            cd /home/ape/evolution-api-lite &&
+            timeout 60 bash -c 'until docker exec evolution_postgres pg_isready -U evolution_user -d evolution_db; do sleep 2; done'
+          "
+
+      - name: Deploy API service
+        run: |
+          ssh -p 2222 ape@ssh.datanodex.com "
+            cd /home/ape/evolution-api-lite &&
+            docker-compose up -d --build api
           " 
