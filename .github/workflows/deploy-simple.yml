@@ -1,0 +1,39 @@
+name: Deploy Evolution API Lite (Simple)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add SSH Host Key
+        run: ssh-keyscan -H -p 2222 ssh.datanodex.com >> ~/.ssh/known_hosts
+
+      - name: Copy files to server
+        run: |
+          rsync -avz --delete -e "ssh -p 2222" \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude '.github' \
+            ./ ape@ssh.datanodex.com:/home/ape/evolution-api-lite
+
+      - name: Deploy with Docker Compose
+        run: |
+          ssh -p 2222 ape@ssh.datanodex.com "
+            cd /home/ape/evolution-api-lite &&
+            docker-compose pull &&
+            docker-compose down --remove-orphans &&
+            docker-compose up -d --build
+          " 
