@@ -77,9 +77,9 @@ jobs:
             CACHE_LOCAL_TTL=3600
             AUTHENTICATION_API_KEY=evolution_api_key_2024_secure_CHANGE_THIS
             AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
-            LOG_LEVEL=[\"ERROR\",\"WARN\",\"INFO\"]
+            LOG_LEVEL=ERROR,WARN,INFO,DEBUG
             LOG_COLOR=true
-            LOG_BAILEYS=error
+            LOG_BAILEYS=debug
             WEBSOCKET_ENABLED=true
             WEBSOCKET_GLOBAL_EVENTS=true
             LANGUAGE=es
