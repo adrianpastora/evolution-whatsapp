@@ -15,18 +15,30 @@ services:
       - evolution-net
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3016/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   redis:
     image: redis:latest
     networks:
       - evolution-net
     container_name: evolution_redis
+    restart: always
     command: >
       redis-server --port 6379 --appendonly yes
     volumes:
       - evolution_redis:/data
     ports:
       - 6380:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   postgres:
     container_name: evolution_postgres
@@ -44,6 +56,12 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution_user -d evolution_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   evolution_instances:
