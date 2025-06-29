@@ -1,0 +1,175 @@
+name: Deploy Evolution API Lite
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Set up SSH Key with ssh-agent
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add SSH Host Key
+        run: |
+          ssh-keyscan -H -p 2222 ssh.datanodex.com >> ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          ssh -p 2222 ape@ssh.datanodex.com "echo 'Conexión SSH exitosa desde GitHub Actions'"
+
+      - name: Deploy Evolution API Lite
+        run: |
+          ssh -p 2222 ape@ssh.datanodex.com '
+            set -e
+            echo "🚀 Iniciando despliegue de Evolution API Lite..."
+            
+            if [ -d "/home/ape/evolution-api-lite/.git" ]; then
+              echo "Repositorio ya clonado. Actualizando..."
+              cd /home/ape/evolution-api-lite
+              docker-compose down --remove-orphans || true
+              mkdir -p instances logs data
+              chmod -R 777 instances/ logs/ data/ 2>/dev/null || true
+              git reset --hard HEAD
+              git pull origin main || { echo "Error al actualizar el repositorio"; exit 1; }
+            else
+              echo "Directorio no válido. Clonando el repositorio..."
+              rm -rf /home/ape/evolution-api-lite
+              git clone git@github.com:adrianpastora/evolution-api-lite.git /home/ape/evolution-api-lite
+              cd /home/ape/evolution-api-lite
+              mkdir -p instances logs data
+              chmod -R 777 instances/ logs/ data/ 2>/dev/null || true
+            fi
+
+            echo "Deteniendo contenedores existentes..."
+            docker-compose down --remove-orphans || true
+
+            echo "Configurando variables de entorno..."
+            echo "SERVER_TYPE=http" > .env
+            echo "SERVER_PORT=3016" >> .env
+            echo "SERVER_URL=https://evolution.datanodex.com" >> .env
+            echo "SERVER_DISABLE_DOCS=false" >> .env
+            echo "SERVER_DISABLE_MANAGER=false" >> .env
+            echo "CORS_ORIGIN=[\"https://n8n.datanodex.com\",\"https://whatsapp.datanodex.com\",\"https://evolution.datanodex.com\"]" >> .env
+            echo "CORS_METHODS=[\"GET\",\"POST\",\"PUT\",\"DELETE\"]" >> .env
+            echo "CORS_CREDENTIALS=true" >> .env
+            echo "DATABASE_PROVIDER=postgresql" >> .env
+            echo "DATABASE_CONNECTION_URI=postgresql://evolution_user:evolution_pass@localhost:5434/evolution_db" >> .env
+            echo "DATABASE_SAVE_DATA_INSTANCE=true" >> .env
+            echo "DATABASE_SAVE_DATA_HISTORIC=true" >> .env
+            echo "DATABASE_SAVE_DATA_NEW_MESSAGE=true" >> .env
+            echo "DATABASE_SAVE_DATA_MESSAGE_UPDATE=true" >> .env
+            echo "DATABASE_SAVE_DATA_CONTACTS=true" >> .env
+            echo "DATABASE_SAVE_DATA_CHATS=true" >> .env
+            echo "DATABASE_SAVE_DATA_LABELS=true" >> .env
+            echo "DATABASE_SAVE_DATA_IS_ON_WHATSAPP=true" >> .env
+            echo "DATABASE_SAVE_DATA_IS_ON_WHATSAPP_DAYS=7" >> .env
+            echo "DATABASE_DELETE_DATA_LOGICAL_MESSAGE_DELETE=true" >> .env
+            echo "CACHE_REDIS_ENABLED=true" >> .env
+            echo "CACHE_REDIS_URI=redis://localhost:6380" >> .env
+            echo "CACHE_REDIS_PREFIX_KEY=evolution" >> .env
+            echo "CACHE_REDIS_TTL=3600" >> .env
+            echo "CACHE_REDIS_SAVE_INSTANCES=true" >> .env
+            echo "CACHE_LOCAL_ENABLED=false" >> .env
+            echo "CACHE_LOCAL_TTL=3600" >> .env
+            echo "AUTHENTICATION_API_KEY=evolution_api_key_2024_secure_CHANGE_THIS" >> .env
+            echo "AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false" >> .env
+            echo "LOG_LEVEL=[\"ERROR\",\"WARN\",\"INFO\"]" >> .env
+            echo "LOG_COLOR=true" >> .env
+            echo "LOG_BAILEYS=error" >> .env
+            echo "WEBSOCKET_ENABLED=true" >> .env
+            echo "WEBSOCKET_GLOBAL_EVENTS=true" >> .env
+            echo "LANGUAGE=es" >> .env
+            echo "PRODUCTION=true" >> .env
+            echo "TELEMETRY_ENABLED=true" >> .env
+
+            echo "Configurando Docker Compose..."
+            echo "services:" > docker-compose.yml
+            echo "  api:" >> docker-compose.yml
+            echo "    container_name: evolution_api_lite" >> docker-compose.yml
+            echo "    build: ." >> docker-compose.yml
+            echo "    restart: always" >> docker-compose.yml
+            echo "    depends_on:" >> docker-compose.yml
+            echo "      - postgres" >> docker-compose.yml
+            echo "      - redis" >> docker-compose.yml
+            echo "    ports:" >> docker-compose.yml
+            echo "      - \"3016:3016\"" >> docker-compose.yml
+            echo "    volumes:" >> docker-compose.yml
+            echo "      - evolution_instances:/evolution/instances" >> docker-compose.yml
+            echo "      - ./logs:/evolution/logs" >> docker-compose.yml
+            echo "    networks:" >> docker-compose.yml
+            echo "      - evolution-net" >> docker-compose.yml
+            echo "    env_file:" >> docker-compose.yml
+            echo "      - .env" >> docker-compose.yml
+            echo "  postgres:" >> docker-compose.yml
+            echo "    container_name: evolution_postgres" >> docker-compose.yml
+            echo "    image: postgres:15" >> docker-compose.yml
+            echo "    networks:" >> docker-compose.yml
+            echo "      - evolution-net" >> docker-compose.yml
+            echo "    restart: always" >> docker-compose.yml
+            echo "    ports:" >> docker-compose.yml
+            echo "      - \"5434:5432\"" >> docker-compose.yml
+            echo "    environment:" >> docker-compose.yml
+            echo "      - POSTGRES_USER=evolution_user" >> docker-compose.yml
+            echo "      - POSTGRES_PASSWORD=evolution_pass" >> docker-compose.yml
+            echo "      - POSTGRES_DB=evolution_db" >> docker-compose.yml
+            echo "    volumes:" >> docker-compose.yml
+            echo "      - postgres_data:/var/lib/postgresql/data" >> docker-compose.yml
+            echo "  redis:" >> docker-compose.yml
+            echo "    image: redis:latest" >> docker-compose.yml
+            echo "    networks:" >> docker-compose.yml
+            echo "      - evolution-net" >> docker-compose.yml
+            echo "    container_name: evolution_redis" >> docker-compose.yml
+            echo "    ports:" >> docker-compose.yml
+            echo "      - \"6380:6379\"" >> docker-compose.yml
+            echo "    volumes:" >> docker-compose.yml
+            echo "      - evolution_redis:/data" >> docker-compose.yml
+            echo "volumes:" >> docker-compose.yml
+            echo "  evolution_instances:" >> docker-compose.yml
+            echo "  evolution_redis:" >> docker-compose.yml
+            echo "  postgres_data:" >> docker-compose.yml
+            echo "networks:" >> docker-compose.yml
+            echo "  evolution-net:" >> docker-compose.yml
+            echo "    name: evolution-net" >> docker-compose.yml
+            echo "    driver: bridge" >> docker-compose.yml
+
+            echo "Configurando Dockerfile..."
+            echo "FROM node:20.10.0-alpine" > Dockerfile
+            echo "WORKDIR /evolution" >> Dockerfile
+            echo "RUN apk add --no-cache python3 make g++ git" >> Dockerfile
+            echo "COPY package*.json ./" >> Dockerfile
+            echo "COPY prisma ./prisma/" >> Dockerfile
+            echo "RUN npm ci --only=production" >> Dockerfile
+            echo "RUN npm run db:generate" >> Dockerfile
+            echo "COPY . ." >> Dockerfile
+            echo "RUN npm run build" >> Dockerfile
+            echo "EXPOSE 3016" >> Dockerfile
+            echo "CMD [\"npm\", \"run\", \"start:prod\"]" >> Dockerfile
+
+            echo "Construyendo y levantando Evolution API Lite..."
+            docker-compose up --build -d
+            
+            echo "Esperando a que el servicio esté listo..."
+            sleep 30
+            
+            echo "Verificando estado del servicio..."
+            if curl -s http://localhost:3016/ > /dev/null; then
+              echo "✅ Evolution API Lite desplegado correctamente"
+            else
+              echo "❌ Error en el despliegue de Evolution API Lite"
+              docker-compose logs --tail=20
+              exit 1
+            fi
+            
+            echo "🎉 ¡Evolution API Lite desplegado exitosamente!"
+            echo "📊 URL: http://localhost:3016"
+            echo "🔐 API Key: evolution_api_key_2024_secure_CHANGE_THIS"
+          ' 
