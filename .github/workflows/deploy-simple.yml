@@ -108,5 +108,6 @@ jobs:
         run: |
           ssh -p 2222 ape@ssh.datanodex.com "
             cd /home/ape/evolution-api-lite &&
-            docker-compose up -d --build api
+            docker-compose build --no-cache api &&
+            docker-compose up -d api
           " 
