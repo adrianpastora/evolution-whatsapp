@@ -51,7 +51,7 @@ jobs:
             SERVER_PORT=3016
             SERVER_URL=https://evolution.datanodex.com
             SERVER_DISABLE_DOCS=false
-            SERVER_DISABLE_MANAGER=false
+            SERVER_DISABLE_MANAGER=true
             CORS_ORIGIN=https://n8n.datanodex.com,https://whatsapp.datanodex.com,https://evolution.datanodex.com,http://localhost:3000,http://localhost:3016,http://192.168.1.196:3016,http://127.0.0.1:3016,*
             CORS_METHODS=GET,POST,PUT,DELETE
             CORS_CREDENTIALS=true
